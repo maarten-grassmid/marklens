@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- Markdown may contain raw HTML: never let it run script, submit forms or call out. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://assets.marklens; style-src https://assets.marklens 'unsafe-inline'; img-src https: http: data: blob:; font-src https://assets.marklens data:; media-src https: http:; frame-src https:; connect-src 'none'; form-action 'none'; base-uri https://doc.marklens/">
+  <base href="https://doc.marklens/">
+  <title>Markdown Viewer</title>
+  <link rel="stylesheet" href="https://assets.marklens/content.css">
+  <link rel="stylesheet" href="https://assets.marklens/viewer.css">
+  <link rel="stylesheet" id="hl-theme" disabled>
+  <link rel="stylesheet" id="katex-css" disabled>
+  <style id="custom-css"></style>
+</head>
+<body class="theme-light">
+  <div id="app">
+    <nav id="toc" aria-label="Table of contents">
+      <div class="toc-head">
+        <input id="toc-filter" type="search" placeholder="Filter headings" spellcheck="false">
+        <button id="toc-close" class="icon-btn" title="Hide table of contents">&#x2715;</button>
+      </div>
+      <ul id="toc-list"></ul>
+      <div id="toc-empty" hidden>No headings</div>
+    </nav>
+    <div id="toc-resizer" title="Drag to resize"></div>
+    <main id="scroller" tabindex="-1">
+      <article id="content" class="markdown-body"></article>
+    </main>
+  </div>
+
+  <div id="findbar" hidden>
+    <input id="find-input" type="search" placeholder="Find in preview" spellcheck="false">
+    <span id="find-count"></span>
+    <button id="find-prev" class="icon-btn" title="Previous (Shift+Enter)">&#x2191;</button>
+    <button id="find-next" class="icon-btn" title="Next (Enter)">&#x2193;</button>
+    <button id="find-close" class="icon-btn" title="Close (Esc)">&#x2715;</button>
+  </div>
+
+  <div id="menu" role="menu" hidden></div>
+  <div id="toast" hidden></div>
+
+  <script src="https://assets.marklens/viewer.js"></script>
+</body>
+</html>

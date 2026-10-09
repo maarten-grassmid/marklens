@@ -1,0 +1,25 @@
+# Editor / tooling local config
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Build output
+bin/
+obj/
+out/
+build/
+dist/
+*.nupkg
+packages/
+
+# Third-party client libraries (fetched by tools/fetch-vendor.ps1)
+src/MarkLens/assets/vendor/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Packaged output
+*.zip

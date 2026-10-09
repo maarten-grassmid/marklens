@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <RootNamespace>MarkLens</RootNamespace>
+    <AssemblyName>MarkLens</AssemblyName>
+    <Version>0.1.0</Version>
+    <Product>MarkLens</Product>
+    <Description>Markdown viewer plugin for Notepad++</Description>
+    <Copyright>Copyright (c) 2026 Maarten Grassmid</Copyright>
+    <Authors>Maarten Grassmid</Authors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Markdig" Version="0.42.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3537.50" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="assets\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets" />
+  </ItemGroup>
+
+  <!-- Fetch bundled client libraries when they are missing. -->
+  <Target Name="FetchVendor" BeforeTargets="BeforeBuild" Condition="!Exists('$(MSBuildProjectDirectory)\assets\vendor\.versions')">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\tools\fetch-vendor.ps1&quot;" />
+    <ItemGroup>
+      <None Include="assets\vendor\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="assets\vendor" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Notepad++ loads plugins from a flat folder: put the native loader next to the DLL. -->
+  <Target Name="FlattenWebView2Loader" AfterTargets="Build">
+    <Copy SourceFiles="$(OutDir)runtimes\win-x64\native\WebView2Loader.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true"
+          Condition="Exists('$(OutDir)runtimes\win-x64\native\WebView2Loader.dll')" />
+  </Target>
+
+  <!-- Rewrite the assembly so Notepad++ sees native exports. -->
+  <Target Name="ExportPluginEntryPoints" AfterTargets="Build">
+    <PropertyGroup>
+      <ExporterProject>$(MSBuildProjectDirectory)\..\..\tools\DllExporter\DllExporter.csproj</ExporterProject>
+    </PropertyGroup>
+    <Exec Command="dotnet run --project &quot;$(ExporterProject)&quot; -c Release -- &quot;$(TargetPath)&quot;" />
+  </Target>
+
+</Project>

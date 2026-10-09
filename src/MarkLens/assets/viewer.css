@@ -1,0 +1,251 @@
+/* Viewer chrome: layout, table of contents, context menu, find bar. */
+
+.theme-light {
+  --chrome-bg: #f6f8fa;
+  --chrome-border: #d1d9e0;
+  --chrome-hover: #e7ebef;
+  --chrome-active: #ddf4ff;
+  --chrome-active-fg: #0969da;
+  --menu-bg: #ffffff;
+  --menu-shadow: 0 8px 24px rgba(140, 149, 159, 0.3);
+  --input-bg: #ffffff;
+}
+
+.theme-dark {
+  --chrome-bg: #191a1d;
+  --chrome-border: #33363b;
+  --chrome-hover: #2a2d31;
+  --chrome-active: #1c2b40;
+  --chrome-active-fg: #4493f8;
+  --menu-bg: #2b2d30;
+  --menu-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --input-bg: #1e1f22;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+#app {
+  display: flex;
+  height: 100%;
+  --toc-width: 240px;
+}
+
+/* ---------- table of contents ---------- */
+
+#toc {
+  flex: 0 0 var(--toc-width);
+  width: var(--toc-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--chrome-bg);
+  border-right: 1px solid var(--chrome-border);
+  min-width: 0;
+}
+
+body.no-toc #toc, body.no-toc #toc-resizer { display: none; }
+
+/* In a narrow panel the sidebar would crowd out the document: give it at most 40%. */
+@media (max-width: 640px) {
+  #toc { flex-basis: min(var(--toc-width), 40vw); width: min(var(--toc-width), 40vw); }
+}
+@media (max-width: 380px) {
+  #toc, #toc-resizer { display: none; }
+}
+
+.toc-head {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--chrome-border);
+}
+
+#toc-filter, #find-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--input-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 4px;
+  outline: none;
+}
+#toc-filter:focus, #find-input:focus { border-color: var(--chrome-active-fg); }
+
+#toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+#toc-list li a {
+  display: block;
+  padding: 3px 10px 3px calc(10px + var(--level, 0) * 14px);
+  color: var(--fg);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+#toc-list li a:hover { background: var(--chrome-hover); }
+#toc-list li a.active {
+  background: var(--chrome-active);
+  color: var(--chrome-active-fg);
+  border-left-color: var(--chrome-active-fg);
+}
+#toc-list li.h1 a { font-weight: 600; }
+#toc-list li.hidden { display: none; }
+
+#toc-empty { padding: 12px; color: var(--fg-muted); }
+
+#toc-resizer {
+  flex: 0 0 5px;
+  margin-left: -3px;
+  cursor: col-resize;
+  z-index: 2;
+}
+#toc-resizer:hover, #toc-resizer.dragging { background: var(--chrome-active-fg); opacity: .4; }
+
+/* ---------- content ---------- */
+
+#scroller {
+  flex: 1;
+  overflow: auto;
+  outline: none;
+  min-width: 0;
+}
+
+.placeholder {
+  margin: 48px auto;
+  max-width: 480px;
+  text-align: center;
+  color: var(--fg-muted);
+}
+.placeholder .title { font-size: 15px; color: var(--fg); margin-bottom: 8px; }
+
+.markdown-body pre { position: relative; }
+.code-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  font: 12px "Segoe UI", system-ui, sans-serif;
+  color: var(--fg-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.markdown-body pre:hover .code-copy { opacity: 1; }
+.code-copy:hover { color: var(--fg); }
+
+.markdown-body .task-list-item input[type="checkbox"] { cursor: pointer; }
+
+.flash { animation: flash 1.2s ease-out; }
+@keyframes flash {
+  0% { background-color: var(--chrome-active); }
+  100% { background-color: transparent; }
+}
+
+/* ---------- buttons ---------- */
+
+.icon-btn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font: 12px "Segoe UI Symbol", "Segoe UI", sans-serif;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--chrome-hover); color: var(--fg); }
+
+/* ---------- context menu ---------- */
+
+#menu {
+  position: fixed;
+  z-index: 100;
+  min-width: 220px;
+  padding: 4px 0;
+  background: var(--menu-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 6px;
+  box-shadow: var(--menu-shadow);
+  user-select: none;
+}
+#menu .item {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 5px 14px 5px 28px;
+  color: var(--fg);
+  cursor: default;
+  position: relative;
+}
+#menu .item:hover:not(.disabled) { background: var(--chrome-active); color: var(--chrome-active-fg); }
+#menu .item.disabled { color: var(--fg-muted); opacity: .6; }
+#menu .item.checked::before { content: "\2713"; position: absolute; left: 10px; }
+#menu .item .key { color: var(--fg-muted); font-size: 12px; }
+#menu .sep { height: 1px; margin: 4px 0; background: var(--chrome-border); }
+
+/* ---------- find bar ---------- */
+
+#findbar {
+  position: fixed;
+  top: 8px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 340px;
+  padding: 6px;
+  background: var(--menu-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 6px;
+  box-shadow: var(--menu-shadow);
+}
+#findbar[hidden] { display: none; }
+#find-count { color: var(--fg-muted); min-width: 52px; text-align: right; font-size: 12px; }
+
+/* ---------- toast ---------- */
+
+#toast {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  padding: 6px 14px;
+  color: var(--bg);
+  background: var(--fg);
+  border-radius: 4px;
+  opacity: .92;
+  pointer-events: none;
+}
+
+/* ---------- print / PDF ---------- */
+
+@media print {
+  html, body { height: auto; overflow: visible; }
+  #toc, #toc-resizer, #menu, #findbar, #toast, .code-copy { display: none !important; }
+  #app { display: block; height: auto; }
+  #scroller { overflow: visible; }
+  .markdown-body { max-width: none; padding: 0; }
+  .markdown-body pre { white-space: pre-wrap; }
+  .markdown-body pre code { white-space: pre-wrap; }
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="MarkLens logo">
+  <circle cx="66" cy="66" r="50" fill="#EAF2FF" stroke="#2563EB" stroke-width="10"/>
+  <path d="M38 88V46l14 0l14 22l14-22l14 0v42h-13V65L67 85h-2L51 65v23z" fill="#1E3A8A"/>
+  <line x1="102" y1="102" x2="146" y2="146" stroke="#2563EB" stroke-width="16" stroke-linecap="round"/>
+</svg>

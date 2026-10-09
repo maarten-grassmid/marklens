@@ -1,0 +1,9 @@
+# Text is stored with LF in the repository and checked out with CRLF (Windows project).
+* text=auto eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.dll binary

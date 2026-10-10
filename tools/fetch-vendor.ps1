@@ -44,7 +44,10 @@ try {
         Write-Host "fetching $($p.Name)@$($p.Version)"
         Invoke-WebRequest -Uri $url -OutFile $tgz -UseBasicParsing
 
-        $actual = (Get-FileHash -Path $tgz -Algorithm SHA256).Hash.ToLowerInvariant()
+        # Hash through .NET directly: the Get-FileHash cmdlet is not available everywhere.
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try { $actual = [BitConverter]::ToString($sha.ComputeHash([IO.File]::ReadAllBytes($tgz))).Replace('-', '').ToLowerInvariant() }
+        finally { $sha.Dispose() }
         if ($actual -ne $p.Sha256.ToLowerInvariant()) {
             throw "checksum mismatch for $($p.Name)@$($p.Version): expected $($p.Sha256), got $actual"
         }

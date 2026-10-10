@@ -47,7 +47,7 @@ namespace MarkLens.UI
         public ViewerPanel(Settings settings)
         {
             _settings = settings;
-            Text = Main.PluginName;
+            Text = Main.PluginName; // tools\smoke-test.ps1 finds the panel by this title
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar = false;
             BackColor = BackgroundColor();
@@ -684,9 +684,12 @@ namespace MarkLens.UI
             }
             if (Libraries.Effective(_settings).Math)
             {
+                // The stylesheet refers to fonts next to it, which a standalone file does not have, so point
+                // it at the CDN copy of the same KaTeX version as the one bundled with the plugin.
                 var katex = Path.Combine(assets, "vendor", "katex", "katex.min.css");
-                if (File.Exists(katex))
-                    css.AppendLine().Append(File.ReadAllText(katex).Replace("url(fonts/", "url(https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/fonts/"));
+                var version = Libraries.Version("katex");
+                if (File.Exists(katex) && version != null)
+                    css.AppendLine().Append(File.ReadAllText(katex).Replace("url(fonts/", $"url(https://cdn.jsdelivr.net/npm/katex@{version}/dist/fonts/"));
             }
             if (!string.IsNullOrWhiteSpace(_settings.CustomCssPath) && File.Exists(_settings.CustomCssPath))
                 css.AppendLine().Append(File.ReadAllText(_settings.CustomCssPath));

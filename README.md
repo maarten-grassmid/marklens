@@ -10,9 +10,9 @@ Live preview · Table of contents · Jump from preview to source · Works with h
 ![Notepad++ 8.3.1+ x64](https://img.shields.io/badge/Notepad%2B%2B-8.3.1%2B%20x64-90E59A.svg)
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6.svg)
 
-[Features](#features) · [Install](#install) · [Usage](#usage) · [Settings](#settings) · [Building](#building)
+[Features](#features) · [Install](#install) · [Usage](#usage) · [Settings](#settings) · [Contributing](#issues-and-contributions) · [Building](#building)
 
-<img src="docs/images/screenshot.png" alt="MarkLens showing a Markdown file next to its live preview in Notepad++" width="100%">
+![MarkLens showing a Markdown file next to its live preview in Notepad++](docs/images/screenshot.png)
 
 </div>
 
@@ -39,18 +39,24 @@ Live preview · Table of contents · Jump from preview to source · Works with h
 > [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/). Current Windows
 > versions include .NET Framework 4.8 and WebView2. Some older or LTSC installations may need WebView2 installed.
 
-1. Download `MarkLens-<version>-x64.zip` from the [Releases](../../releases) page.
+MarkLens is not yet available through Plugins Admin, so install it by hand:
+
+1. Download `MarkLens-<version>-x64.zip` from the [Releases](https://github.com/maarten-grassmid/marklens/releases) page.
 2. Close Notepad++.
 3. Create the folder `C:\Program Files\Notepad++\plugins\MarkLens\` and extract the zip into it.
    `MarkLens.dll` should end up directly inside that folder. Writing to Program Files needs administrator rights.
 4. Start Notepad++ and open **Plugins › MarkLens › Markdown Viewer**.
 
-**Verify a download (optional):** every release zip is built and signed by this repository's GitHub workflow.
-With the [GitHub CLI](https://cli.github.com/) you can check that a zip is genuine:
+**Verify a download (optional):** every release zip carries a signed build attestation proving it was built by
+this repository's GitHub workflow from the tagged source. With the [GitHub CLI](https://cli.github.com/) you can
+check that a zip is genuine:
 
 ```powershell
 gh attestation verify MarkLens-<version>-x64.zip --repo maarten-grassmid/marklens
 ```
+
+**What's new:** each [release](https://github.com/maarten-grassmid/marklens/releases) lists its changes and the
+SHA-256 of its zip.
 
 **Uninstall:** close Notepad++ and delete `C:\Program Files\Notepad++\plugins\MarkLens\`. To also remove your
 settings, delete `%AppData%\Notepad++\plugins\config\MarkLens\`.
@@ -90,40 +96,42 @@ Open **Plugins › MarkLens › Settings…**
 | Markdown file extensions | `.md` `.markdown` `.mdown` `.mkd` and more |
 | Live update delay | 250 ms |
 | Custom stylesheet | None |
-| Code highlighting · Mermaid · Math · Emoji | Off |
+| Code highlighting · Mermaid · Math · Emoji | Off. The first three use libraries that ship inside the release; if one is missing, Settings marks it "not installed" and the preview keeps working without it. |
 | Raw HTML in Markdown | Off (shown as text) |
 
-> [!NOTE]
-> Code highlighting, Mermaid and Math use libraries that ship inside the release. If one is missing, MarkLens
-> keeps working without that feature, and Settings marks it "not installed" with a link to reinstall.
-> Emoji is built in and needs no extra library.
+Zoom level and the width of the table of contents are remembered automatically. All settings are stored in
+`%AppData%\Notepad++\plugins\config\MarkLens\MarkLens.ini` (inside the Notepad++ folder for a portable install).
 
 > [!NOTE]
 > Raw HTML inside Markdown is shown as plain text by default, so a file cannot load remote images or embed
 > other pages in the preview. Turn on **Render raw HTML** in Settings if your documents rely on it.
 
-> [!NOTE]
-> **Export as HTML** writes a single file with the rendered document in the light theme. Code highlighting
-> and diagrams are kept as rendered. With Math on, the file loads the KaTeX fonts from the internet.
+**Export as HTML** writes a single, self-contained file in the light theme. Code highlighting and diagrams are
+kept as rendered. With Math on, the file loads the KaTeX fonts from a CDN so it stays a single file.
 
 ## Troubleshooting
 
 | Problem | What to do |
 |---|---|
-| MarkLens is not in the Plugins menu | Check that you use **64-bit** Notepad++ and that `MarkLens.dll` is directly inside `plugins\MarkLens\`. |
+| MarkLens is not in the Plugins menu, or Notepad++ reports it as incompatible | Check that you use **64-bit** Notepad++ 8.3.1 or later and that `MarkLens.dll` is directly inside `plugins\MarkLens\`. |
 | The panel says the WebView2 runtime is required | Install the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) and restart Notepad++. |
+| Code highlighting, Mermaid or Math is greyed out as "not installed" | A library is missing from the plugin folder. Reinstall the release zip. |
 | "is not a Markdown file" | Add the file's extension in **Settings › Markdown file extensions**. |
 | An error message appeared | Details are written to `%TEMP%\MarkLens.log`. Please include it when you open an issue. |
 
 ## Issues and contributions
 
-Found a bug or have an idea? [Open an issue](../../issues). Pull requests are welcome too; please open them
-against the `develop` branch.
+Found a bug or have an idea? [Open an issue](https://github.com/maarten-grassmid/marklens/issues).
+
+Pull requests are welcome. Branch from `develop` and target `develop`; `main` only receives releases, and
+pull requests against it are rejected automatically. CI runs after the maintainer approves it, so a check
+that says "waiting" on your pull request is normal. See [CONTRIBUTING.md](CONTRIBUTING.md) for the build
+and test loop and for the few files that must change together.
 
 ## Building
 
 You need **Windows**, **PowerShell** and the **.NET SDK 8 or newer**. The first build needs an internet
-connection to restore NuGet packages and download the optional client libraries.
+connection to restore NuGet packages and download the bundled client libraries.
 
 ```powershell
 git clone https://github.com/maarten-grassmid/marklens.git
@@ -136,14 +144,16 @@ cd marklens
 .\tools\package.ps1 -NppPluginsDir "C:\Program Files\Notepad++\plugins"
 
 # install the package into a portable Notepad++ 8.3.1 and check that the viewer opens
+# (closes every running Notepad++ first)
 .\tools\smoke-test.ps1 -Zip dist\MarkLens-<version>-x64.zip
 ```
 
-The libraries (highlight.js, KaTeX, Mermaid) are downloaded from npm once into `src\MarkLens\assets\vendor\`.
-After the build, `tools\DllExporter` adds the native entry points Notepad++ needs to load the plugin.
+The libraries (highlight.js, KaTeX, Mermaid) are downloaded from npm into `src\MarkLens\assets\vendor\` and
+verified against pinned checksums. After the build, `tools\DllExporter` adds the native entry points
+Notepad++ needs to load the plugin.
 
 **Releases:** every build runs the smoke test above against the packaged zip. Pushing a tag such as `v1.2.0`
-builds the zip with that version, tests it the same way and publishes it as a GitHub release.
+on `main` builds the zip with that version, tests it the same way and publishes it as a GitHub release.
 
 ## License
 

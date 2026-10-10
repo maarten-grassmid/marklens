@@ -14,6 +14,7 @@ $packages = @(
     @{ Name = '@highlightjs/cdn-assets'; Version = '11.11.1'; Dir = 'highlight';
        Sha256 = '28a06bf6ebcc2218c6e842bdb4f1c8353508a8cada59e85110f91892f5726195';
        Files = @('highlight.min.js', 'styles/github.min.css', 'styles/github-dark.min.css') },
+    # Export as HTML reads the KaTeX version from the .versions stamp to pick matching CDN fonts.
     @{ Name = 'katex'; Version = '0.16.22'; Dir = 'katex';
        Sha256 = 'e9e0d167db3175481cbadaff38e8d90b130f6a3ddb451a47e43c577fd511f365';
        Files = @('dist/katex.min.js', 'dist/katex.min.css', 'dist/contrib/auto-render.min.js', 'dist/fonts') },

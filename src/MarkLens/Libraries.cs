@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace MarkLens
@@ -21,6 +22,26 @@ namespace MarkLens
                     return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Installed version of a bundled library, read from the stamp tools\fetch-vendor.ps1 writes
+        /// (one "name@version" per line). Null when the stamp or the library is missing.
+        /// </summary>
+        public static string Version(string name)
+        {
+            try
+            {
+                foreach (var line in File.ReadAllLines(Path.Combine(Vendor, ".versions")))
+                {
+                    var at = line.LastIndexOf('@');
+                    if (at > 0 && line.Substring(0, at) == name)
+                        return line.Substring(at + 1).Trim();
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return null;
         }
 
         public static bool Highlight => Present(@"highlight\highlight.min.js", @"highlight\github.min.css", @"highlight\github-dark.min.css");

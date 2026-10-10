@@ -53,9 +53,8 @@ Get-ChildItem $pluginDir -Recurse -File | ForEach-Object {
     Set-Content -Path $_.FullName -Stream 'Zone.Identifier' -Value "[ZoneTransfer]`r`nZoneId=3" -NoNewline
 }
 
-# Open the sample and show the viewer (Ctrl+Shift+M, the plugin's default shortcut).
+# Open the sample and show the viewer through its Plugins menu entry.
 $sample = Join-Path $root 'docs\sample.md'
-Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type @'
 using System;
@@ -63,13 +62,31 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 public static class Win {
-    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr parent, EnumProc cb, IntPtr l);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetClassName(IntPtr h, StringBuilder s, int n);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr SendMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] public static extern int GetMenuItemCount(IntPtr menu);
+    [DllImport("user32.dll")] public static extern IntPtr GetSubMenu(IntPtr menu, int pos);
+    [DllImport("user32.dll")] public static extern uint GetMenuItemID(IntPtr menu, int pos);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetMenuString(IntPtr menu, uint pos, StringBuilder s, int n, uint flags);
+    public static string MenuText(IntPtr menu, int pos) { var s = new StringBuilder(256); GetMenuString(menu, (uint)pos, s, 256, 0x400 /* MF_BYPOSITION */); return s.ToString(); }
+    // Command id of Plugins > <plugin> > <item>, or 0 when not found.
+    public static uint PluginCommand(IntPtr npp, string plugin, string item) {
+        const uint NPPM_GETMENUHANDLE = 0x400 + 1000 + 25;
+        IntPtr menu = SendMessage(npp, NPPM_GETMENUHANDLE, IntPtr.Zero /* NPPPLUGINMENU */, IntPtr.Zero);
+        for (int i = 0; i < GetMenuItemCount(menu); i++) {
+            if (MenuText(menu, i).Replace("&", "") != plugin) continue;
+            IntPtr sub = GetSubMenu(menu, i);
+            for (int j = 0; j < GetMenuItemCount(sub); j++)
+                if (MenuText(sub, j).Replace("&", "").Split((char)9)[0] == item) return GetMenuItemID(sub, j);
+        }
+        return 0;
+    }
     public delegate bool EnumProc(IntPtr h, IntPtr l);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
     public static List<IntPtr> Children(IntPtr parent) {
@@ -89,9 +106,9 @@ while ($proc.MainWindowHandle -eq 0 -and (Get-Date) -lt $deadline) { Start-Sleep
 if ($proc.MainWindowHandle -eq 0) { Stop-Npp; throw 'Notepad++ did not open a window' }
 Start-Sleep -Seconds 3
 
-[Win]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
-Start-Sleep -Milliseconds 500
-[System.Windows.Forms.SendKeys]::SendWait('^+m')
+$cmd = [Win]::PluginCommand($proc.MainWindowHandle, 'MarkLens', 'Markdown Viewer')
+if ($cmd -eq 0) { Stop-Npp; throw 'Plugins > MarkLens > Markdown Viewer is not in the menu (plugin not loaded)' }
+[Win]::PostMessage($proc.MainWindowHandle, 0x111 <# WM_COMMAND #>, [IntPtr]$cmd, [IntPtr]::Zero) | Out-Null
 
 # Wait until the viewer panel and its WebView2 (class Chrome_WidgetWin_*) are up.
 $panel = [IntPtr]::Zero; $web = [IntPtr]::Zero
@@ -122,7 +139,7 @@ Stop-Npp
 
 $failures = @()
 if (Test-Path $log) { $failures += "the plugin logged an error:`n" + (Get-Content $log -Raw) }
-if ($panel -eq [IntPtr]::Zero) { $failures += 'the MarkLens panel did not appear (plugin not loaded or shortcut not handled)' }
+if ($panel -eq [IntPtr]::Zero) { $failures += 'the MarkLens panel did not appear' }
 if ($web -eq [IntPtr]::Zero) { $failures += 'the viewer did not create its WebView2 control' }
 if ($failures) { throw ("smoke test failed:`n- " + ($failures -join "`n- ")) }
 Write-Host "smoke test passed on Notepad++ $nppVersion"

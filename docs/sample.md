@@ -11,7 +11,8 @@ right-click and choose **Edit Selection** to jump to the Markdown behind it.
 ## Text formatting
 
 *Italic*, **bold**, ***bold italic***, ~~strikethrough~~, ==highlighted==,
-++inserted++, H~2~O, E = mc^2^, `inline code` and <kbd>Ctrl</kbd>+<kbd>C</kbd>.
+++inserted++, H~2~O, E = mc^2^, `inline code` and <kbd>Ctrl</kbd>+<kbd>C</kbd> (raw HTML, rendered when
+*Render raw HTML* is on in Settings).
 
 Autolinks: https://github.com/maarten-grassmid/marklens and a [relative link](../README.md).
 

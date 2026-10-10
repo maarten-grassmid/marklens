@@ -26,7 +26,20 @@ namespace MarkLens
             var name = new AssemblyName(args.Name).Name;
             var dir = Path.GetDirectoryName(typeof(PluginExports).Assembly.Location);
             var candidate = Path.Combine(dir, name + ".dll");
-            return File.Exists(candidate) ? Assembly.LoadFrom(candidate) : null;
+            if (!File.Exists(candidate))
+                return null;
+
+            // Files extracted from a downloaded zip carry the "mark of the web", which makes the
+            // runtime refuse to load them from disk. The plugin folder is trusted, so load the
+            // bytes instead when that happens.
+            try
+            {
+                return Assembly.UnsafeLoadFrom(candidate);
+            }
+            catch (FileLoadException)
+            {
+                return Assembly.Load(File.ReadAllBytes(candidate));
+            }
         }
 
         [DllExport("isUnicode")]

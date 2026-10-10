@@ -10,7 +10,7 @@
     <Platforms>x64</Platforms>
     <RootNamespace>MarkLens</RootNamespace>
     <AssemblyName>MarkLens</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>MarkLens</Product>
     <Description>Markdown viewer plugin for Notepad++</Description>
     <Copyright>Copyright (c) 2026 Maarten Grassmid</Copyright>

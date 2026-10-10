@@ -15,11 +15,12 @@ namespace MarkLens.Rendering
         public bool Math;
         public bool Mermaid;
         public bool Emoji;
+        public bool Html;
 
         public override bool Equals(object obj)
-            => obj is RenderOptions o && o.Math == Math && o.Mermaid == Mermaid && o.Emoji == Emoji;
+            => obj is RenderOptions o && o.Math == Math && o.Mermaid == Mermaid && o.Emoji == Emoji && o.Html == Html;
 
-        public override int GetHashCode() => (Math ? 1 : 0) | (Mermaid ? 2 : 0) | (Emoji ? 4 : 0);
+        public override int GetHashCode() => (Math ? 1 : 0) | (Mermaid ? 2 : 0) | (Emoji ? 4 : 0) | (Html ? 8 : 0);
     }
 
     internal sealed class RenderResult
@@ -71,6 +72,9 @@ namespace MarkLens.Rendering
                     b.UseDiagrams();
                 if (options.Emoji)
                     b.UseEmojiAndSmiley(enableSmileys: false);
+                // Raw HTML can embed remote images and frames; show it as text unless allowed.
+                if (!options.Html)
+                    b.DisableHtml();
 
                 // Must be last: lets {#id .class} attributes apply to any element.
                 b.UseGenericAttributes();

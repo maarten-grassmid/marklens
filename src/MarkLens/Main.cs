@@ -29,6 +29,7 @@ namespace MarkLens
 
         public static void Initialize()
         {
+            // tools\smoke-test.ps1 opens the viewer through this menu entry by name.
             _idxToggle = Menu.Add("Markdown Viewer", TogglePanel, false,
                 new ShortcutKey(true, false, true, Keys.M));
             _idxToc = Menu.Add("Table of Contents", ToggleToc);

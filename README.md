@@ -10,7 +10,7 @@ Live preview · Table of contents · Jump from preview to source · Works with h
 ![Notepad++ 8.3.1+ x64](https://img.shields.io/badge/Notepad%2B%2B-8.3.1%2B%20x64-90E59A.svg)
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6.svg)
 
-[Features](#features) · [Install](#install) · [Usage](#usage) · [Settings](#settings) · [Building](#building)
+[Features](#features) · [Install](#install) · [Usage](#usage) · [Settings](#settings) · [Contributing](#issues-and-contributions) · [Building](#building)
 
 ![MarkLens showing a Markdown file next to its live preview in Notepad++](docs/images/screenshot.png)
 

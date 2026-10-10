@@ -30,6 +30,9 @@ namespace MarkLens
         public bool Math = false;
         public bool Emoji = false;
 
+        // Raw HTML in Markdown is shown as text unless the user opts in.
+        public bool AllowHtml = false;
+
 #if DEBUG
         // Developer option, debug builds only (INI only, never written back):
         // remote-debugging port for the preview. Release builds never open one.
@@ -62,6 +65,7 @@ namespace MarkLens
             s.Mermaid = s.GetBool(nameof(Mermaid), s.Mermaid);
             s.Math = s.GetBool(nameof(Math), s.Math);
             s.Emoji = s.GetBool(nameof(Emoji), s.Emoji);
+            s.AllowHtml = s.GetBool(nameof(AllowHtml), s.AllowHtml);
 #if DEBUG
             s.DevToolsPort = s.GetInt(nameof(DevToolsPort), 0, 0, 65535);
 #endif
@@ -83,6 +87,7 @@ namespace MarkLens
             Set(nameof(Mermaid), Mermaid);
             Set(nameof(Math), Math);
             Set(nameof(Emoji), Emoji);
+            Set(nameof(AllowHtml), AllowHtml);
         }
 
         public Settings Clone() => (Settings)MemberwiseClone();

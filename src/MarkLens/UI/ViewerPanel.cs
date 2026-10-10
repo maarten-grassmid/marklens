@@ -372,7 +372,7 @@ namespace MarkLens.UI
 
                 string text = Editor.GetText();
                 var effective = Libraries.Effective(_settings);
-                var options = new RenderOptions { Math = effective.Math, Mermaid = effective.Mermaid, Emoji = effective.Emoji };
+                var options = new RenderOptions { Math = effective.Math, Mermaid = effective.Mermaid, Emoji = effective.Emoji, Html = _settings.AllowHtml };
                 EnsureUiContext();
                 var result = await Task.Run(() => MarkdownRenderer.Render(text, options));
                 if (version != _renderVersion || !IsActive)

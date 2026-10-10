@@ -20,6 +20,7 @@ namespace MarkLens.UI
         private readonly CheckBox _mermaid = Check("Mermaid diagrams (```mermaid blocks)");
         private readonly CheckBox _math = Check("Math formulas with KaTeX ($inline$ and $$block$$)");
         private readonly CheckBox _emoji = Check("Emoji shortcodes (:smile: becomes a smiley)");
+        private readonly CheckBox _html = Check("Render raw HTML in Markdown (can load remote images and frames)");
 
         public Settings Result => _result;
 
@@ -71,6 +72,7 @@ namespace MarkLens.UI
             extras.Controls.Add(_mermaid);
             extras.Controls.Add(_math);
             extras.Controls.Add(_emoji);
+            extras.Controls.Add(_html);
 
             // A missing library can't be switched on; point to a reinstall instead.
             bool anyMissing = false;
@@ -135,6 +137,7 @@ namespace MarkLens.UI
             _mermaid.Checked = s.Mermaid && Libraries.Mermaid;
             _math.Checked = s.Math && Libraries.Math;
             _emoji.Checked = s.Emoji;
+            _html.Checked = s.AllowHtml;
         }
 
         private void Commit()
@@ -151,6 +154,7 @@ namespace MarkLens.UI
             if (_mermaid.Enabled) _result.Mermaid = _mermaid.Checked;
             if (_math.Enabled) _result.Math = _math.Checked;
             _result.Emoji = _emoji.Checked;
+            _result.AllowHtml = _html.Checked;
         }
 
         private static CheckBox Check(string text) => new CheckBox { Text = text, AutoSize = true, Margin = new Padding(0, 3, 0, 3) };

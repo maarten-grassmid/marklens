@@ -91,11 +91,16 @@ Open **Plugins › MarkLens › Settings…**
 | Live update delay | 250 ms |
 | Custom stylesheet | None |
 | Code highlighting · Mermaid · Math · Emoji | Off |
+| Raw HTML in Markdown | Off (shown as text) |
 
 > [!NOTE]
 > Code highlighting, Mermaid and Math use libraries that ship inside the release. If one is missing, MarkLens
 > keeps working without that feature, and Settings marks it "not installed" with a link to reinstall.
 > Emoji is built in and needs no extra library.
+
+> [!NOTE]
+> Raw HTML inside Markdown is shown as plain text by default, so a file cannot load remote images or embed
+> other pages in the preview. Turn on **Render raw HTML** in Settings if your documents rely on it.
 
 > [!NOTE]
 > **Export as HTML** writes a single file with the rendered document in the light theme. Code highlighting

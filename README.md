@@ -117,7 +117,8 @@ Open **Plugins › MarkLens › Settings…**
 
 ## Issues and contributions
 
-Found a bug or have an idea? [Open an issue](../../issues). Pull requests are welcome too.
+Found a bug or have an idea? [Open an issue](../../issues). Pull requests are welcome too; please open them
+against the `develop` branch.
 
 ## Building
 
@@ -133,13 +134,16 @@ cd marklens
 
 # or build, package and install into Notepad++ (run as administrator)
 .\tools\package.ps1 -NppPluginsDir "C:\Program Files\Notepad++\plugins"
+
+# install the package into a portable Notepad++ 8.3.1 and check that the viewer opens
+.\tools\smoke-test.ps1 -Zip dist\MarkLens-<version>-x64.zip
 ```
 
 The libraries (highlight.js, KaTeX, Mermaid) are downloaded from npm once into `src\MarkLens\assets\vendor\`.
 After the build, `tools\DllExporter` adds the native entry points Notepad++ needs to load the plugin.
 
-**Releases:** pushing a tag such as `v1.2.0` builds the zip with that version and publishes it as a GitHub
-release.
+**Releases:** every build runs the smoke test above against the packaged zip. Pushing a tag such as `v1.2.0`
+builds the zip with that version, tests it the same way and publishes it as a GitHub release.
 
 ## License
 

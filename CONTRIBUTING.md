@@ -1,0 +1,66 @@
+# Contributing to MarkLens
+
+Thanks for helping out. This page covers what is specific to this repository; the
+[README](README.md#building) has the build commands.
+
+## Branches and pull requests
+
+- Branch from `develop` and open your pull request against `develop`.
+- `main` only receives releases, merged from `develop` by the maintainer. A pull request against `main`
+  fails its `check` and cannot be merged.
+- Keep a pull request to one topic. Describe what changed and why; the template asks a few questions.
+- CI builds every pull request after the maintainer approves the run, so a check that stays at
+  "waiting" for a while is expected. For pull requests from forks the maintainer builds and tests locally.
+
+## What not to change
+
+- **The version** in `src/MarkLens/MarkLens.csproj`. The maintainer bumps it in the release pull request.
+- **The workflows** in `.github/workflows`. Actions are pinned to commit hashes and runs are gated by
+  environments; changes there are the maintainer's.
+- **Pinned checksums** in `tools/fetch-vendor.ps1` and `tools/smoke-test.ps1`, except as part of an upgrade
+  described below.
+
+## Local loop
+
+```powershell
+.\tools\package.ps1                                              # build + zip into dist\
+.\tools\package.ps1 -NppPluginsDir "C:\Program Files\Notepad++\plugins"   # ...and install (as administrator)
+.\tools\smoke-test.ps1 -Zip dist\MarkLens-<version>-x64.zip      # cold install into portable 8.3.1
+```
+
+- The smoke test closes every running Notepad++ and deletes `%TEMP%\MarkLens.log` before it starts.
+- Errors inside the plugin are written to `%TEMP%\MarkLens.log` and shown once in a dialog.
+- A Debug build (`package.ps1 -Configuration Debug`) reads `DevToolsPort` from `MarkLens.ini` and lets you
+  attach browser DevTools to the preview at `http://localhost:<port>` for debugging `viewer.js`.
+- The bundled libraries are only fetched when `src\MarkLens\assets\vendor\.versions` is missing. After editing
+  `tools\fetch-vendor.ps1`, run it with `-Force` or delete that file, or the build keeps the old copies.
+- Files are stored with LF and checked out with CRLF (see `.gitattributes`); `.editorconfig` has the
+  indentation rules. Build from a normal Windows checkout to avoid every file showing as modified.
+
+## Things that must change together
+
+| If you change | Also update |
+|---|---|
+| A bundled library version (highlight.js, KaTeX, Mermaid) | version and SHA-256 in `tools/fetch-vendor.ps1`; the version heading in `THIRD-PARTY-NOTICES.txt`; for KaTeX also the CDN font URL in `ViewerPanel.cs` used by Export as HTML |
+| A bundled library file name | `tools/fetch-vendor.ps1`, `Libraries.cs`, `tools/package.ps1`, `assets/viewer.js` and the export code in `ViewerPanel.cs` |
+| A NuGet package | the DLL list in `tools/package.ps1` (the package step fails with "missing build output" otherwise) and `THIRD-PARTY-NOTICES.txt` |
+| The menu text "Markdown Viewer", the plugin name or the panel title | `tools/smoke-test.ps1`, which finds the viewer by those names |
+| `docs/sample.md` | nothing. The smoke test only opens it; its content is free to improve |
+| A field in `Settings.cs` | nothing, but the INI key is the field name, so renaming a field resets that setting for every user |
+| The minimum Notepad++ version | the badge and requirements in `README.md`, `npp-compatible-versions` in `.github/workflows/build.yml`, and the version and SHA-256 in `tools/smoke-test.ps1` |
+
+## How the plugin is put together
+
+- `src/MarkLens/Npp/` talks to Notepad++ and Scintilla. `PluginExports.cs` holds the five native entry
+  points, which `tools/DllExporter` rewrites after the build; keep that class free of Markdig and WebView2
+  types so the assembly resolver is installed before they are needed. Structures and offsets are x64 only.
+- `src/MarkLens/Rendering/` turns Markdown into HTML with Markdig.
+- `src/MarkLens/UI/ViewerPanel.cs` hosts WebView2. The viewer assets are served from a virtual host, the
+  document folder is mapped for relative images, and `assets/viewer.js` talks back through
+  `chrome.webview.postMessage`.
+- Scope: x64, .NET Framework 4.8, and no new runtime dependencies without discussing it first, because every
+  DLL ships inside the zip.
+
+## Security
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), not in an issue.

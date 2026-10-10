@@ -1,0 +1,44 @@
+name: Bug report
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Markdown that triggers it
+      description: A small Markdown snippet that shows the problem, if the problem depends on the content.
+      render: markdown
+  - type: input
+    id: marklens
+    attributes:
+      label: MarkLens version
+      description: Plugins › MarkLens › About
+      placeholder: 0.1.2
+    validations:
+      required: true
+  - type: input
+    id: npp
+    attributes:
+      label: Notepad++ version
+      description: "? › Debug Info. Please include whether it is 64-bit and whether it is a portable install."
+      placeholder: 8.8.1 64-bit
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: textarea
+    id: log
+    attributes:
+      label: Contents of %TEMP%\MarkLens.log
+      description: Only if an error dialog appeared. Paste the file here.
+      render: text

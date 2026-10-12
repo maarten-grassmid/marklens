@@ -69,6 +69,7 @@ namespace MarkLens.Npp
         public const int NPPM_GETCURRENTDIRECTORY = RUNCOMMAND_USER + 2;
         public const int NPPM_GETFILENAME = RUNCOMMAND_USER + 3;
         public const int NPPM_GETEXTPART = RUNCOMMAND_USER + 5;
+        public const int NPPM_GETNPPDIRECTORY = RUNCOMMAND_USER + 7;
 
         // Notifications
         private const uint NPPN_FIRST = 1000;
@@ -77,6 +78,7 @@ namespace MarkLens.Npp
         public const uint NPPN_SHUTDOWN = NPPN_FIRST + 9;
         public const uint NPPN_BUFFERACTIVATED = NPPN_FIRST + 10;
         public const uint NPPN_LANGCHANGED = NPPN_FIRST + 11;
+        public const uint NPPN_CANCELSHUTDOWN = NPPN_FIRST + 20;
         public const uint NPPN_FILERENAMED = NPPN_FIRST + 23;
         public const uint NPPN_DARKMODECHANGED = NPPN_FIRST + 27;
 
@@ -95,14 +97,18 @@ namespace MarkLens.Npp
         public const int SCI_GETLINEENDPOSITION = 2136;
         public const int SCI_GETCODEPAGE = 2137;
         public const int SCI_GETREADONLY = 2140;
+        public const int SCI_GETSELECTIONSTART = 2143;
+        public const int SCI_GETSELECTIONEND = 2145;
         public const int SCI_GETFIRSTVISIBLELINE = 2152;
         public const int SCI_GETLINECOUNT = 2154;
         public const int SCI_SETSEL = 2160;
+        public const int SCI_LINEFROMPOSITION = 2166;
         public const int SCI_POSITIONFROMLINE = 2167;
         public const int SCI_REPLACETARGET = 2194;
         public const int SCI_VISIBLEFROMDOCLINE = 2220;
         public const int SCI_DOCLINEFROMVISIBLE = 2221;
         public const int SCI_ENSUREVISIBLE = 2232;
+        public const int SCI_LINESONSCREEN = 2370;
         public const int SCI_GRABFOCUS = 2400;
         public const int SCI_GETCHARACTERPOINTER = 2520;
         public const int SCI_SETFIRSTVISIBLELINE = 2613;
@@ -136,6 +142,9 @@ namespace MarkLens.Npp
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, out int lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);

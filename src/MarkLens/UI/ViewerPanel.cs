@@ -37,7 +37,11 @@ namespace MarkLens.UI
         private string _lastRenderedText = string.Empty;
         private IntPtr _lastBufferId;
         private int _shownVersion = -1;
-        private DateTime _suppressEditorScrollUntil;
+        // Editor top line the preview was last aligned with. An editor scroll report equal to it is
+        // our own echo (or nothing changed); anything else is a real movement and is synced.
+        private long _lastSyncedLine = -1;
+        private bool _resyncPending;
+        private (int Start, int End)? _pendingReveal;
         private IntPtr _namePtr, _modulePtr;
 
         public event Action PanelClosed;
@@ -89,7 +93,10 @@ namespace MarkLens.UI
             Editor.Npp(visible ? NppMsg.NPPM_DMMSHOW : NppMsg.NPPM_DMMHIDE, 0, Handle.ToInt64());
             IsActive = visible;
             if (visible)
+            {
                 ScheduleRender(immediate: true);
+                Resync();
+            }
         }
 
         protected override void WndProc(ref Message m)
@@ -137,6 +144,20 @@ namespace MarkLens.UI
             {
                 Editor.SaveCurrentFile();
                 return true;
+            }
+            // Ctrl+F and F3 are also browser accelerators. WebView2 has no find UI of its own, so
+            // left alone they are swallowed and the page never sees them; hand them to the page.
+            if (_pageReady)
+            {
+                string find = keyData == (Keys.Control | Keys.F) ? "open"
+                    : keyData == Keys.F3 ? "next"
+                    : keyData == (Keys.Shift | Keys.F3) ? "prev"
+                    : null;
+                if (find != null)
+                {
+                    Post(new Dictionary<string, object> { ["type"] = "find", ["action"] = find });
+                    return true;
+                }
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
@@ -254,9 +275,12 @@ namespace MarkLens.UI
 
         public void UpdateSettings(Settings settings)
         {
+            bool syncTurnedOn = settings.SyncScroll && !_settings.SyncScroll;
             _settings = settings;
             ApplySettings();
             ScheduleRender(immediate: true);
+            if (syncTurnedOn)
+                Resync();
         }
 
         public void ApplySettings()
@@ -392,6 +416,19 @@ namespace MarkLens.UI
                     ["v"] = version,
                 });
                 _shownVersion = version;
+
+                // Messages are handled in order, so these apply to the page just rendered.
+                if (_pendingReveal is (int revealStart, int revealEnd))
+                {
+                    _pendingReveal = null;
+                    PostReveal(revealStart, revealEnd);
+                }
+                else if (_resyncPending)
+                {
+                    _resyncPending = false;
+                    _lastSyncedLine = -1;
+                    OnEditorScrolled();
+                }
             }
             catch (Exception ex)
             {
@@ -399,13 +436,50 @@ namespace MarkLens.UI
             }
         }
 
+        /// <summary>
+        /// Called on every editor UI update. Sends the editor's top line to the page whenever it
+        /// differs from the line both sides were last aligned on.
+        /// </summary>
         public void OnEditorScrolled()
         {
-            if (!_pageReady || !_settings.SyncScroll || DateTime.UtcNow < _suppressEditorScrollUntil)
+            if (!_pageReady || !IsActive || !_settings.SyncScroll || !CurrentIsMarkdown())
                 return;
-            if (!CurrentIsMarkdown())
+            long first = Editor.FirstVisibleDocLine;
+            if (first == _lastSyncedLine)
                 return;
-            Post(new Dictionary<string, object> { ["type"] = "scrollTo", ["line"] = Editor.FirstVisibleDocLine });
+            _lastSyncedLine = first;
+            Post(new Dictionary<string, object> { ["type"] = "scrollTo", ["line"] = first });
+        }
+
+        /// <summary>Aligns the preview with the editor again, after the pending render if there is one.</summary>
+        public void Resync()
+        {
+            _lastSyncedLine = -1;
+            if (!_pageReady || _renderTimer.Enabled || _shownVersion != _renderVersion)
+                _resyncPending = true;
+            else
+                OnEditorScrolled();
+        }
+
+        /// <summary>Show in Preview: scrolls the preview to the block behind source lines [start, end].</summary>
+        public void RevealLines(int start, int end)
+        {
+            if (!_pageReady || !CurrentIsMarkdown())
+                return;
+            if (_renderTimer.Enabled || _shownVersion != _renderVersion || Editor.CurrentBufferId != _lastBufferId)
+            {
+                _pendingReveal = (start, end);
+                ScheduleRender(immediate: true);
+                return;
+            }
+            PostReveal(start, end);
+        }
+
+        private void PostReveal(int start, int end)
+        {
+            Post(new Dictionary<string, object> { ["type"] = "reveal", ["start"] = start, ["end"] = end });
+            // The page moved on its own; the next editor movement re-aligns both sides.
+            _lastSyncedLine = Editor.FirstVisibleDocLine;
         }
 
         private void Post(object message)
@@ -449,14 +523,19 @@ namespace MarkLens.UI
                     case "scroll":
                         if (_settings.SyncScroll && CurrentIsMarkdown())
                         {
-                            _suppressEditorScrollUntil = DateTime.UtcNow.AddMilliseconds(200);
                             Editor.ScrollToDocLine(Int(msg, "line"));
+                            // Read back: the editor clamps near the end, and this is what it will report.
+                            _lastSyncedLine = Editor.FirstVisibleDocLine;
                         }
                         break;
                     case "editSource":
                         // A stale page is simply re-rendered; the user can click again.
                         if (IsCurrentRender(msg))
                             EditSource(Int(msg, "start"), Int(msg, "end"));
+                        break;
+                    case "showSource":
+                        if (IsCurrentRender(msg))
+                            ShowSource(Int(msg, "start"), Int(msg, "end"));
                         break;
                     case "copyMarkdown":
                         if (IsCurrentRender(msg) && CheckLinesCurrent(Int(msg, "start"), Int(msg, "end")))
@@ -557,6 +636,20 @@ namespace MarkLens.UI
             if (!CheckLinesCurrent(start, end))
                 return; // a fresh render is scheduled; the page is out of date
             SourceHighlight.Show(start, end);
+            // Keep the preview where the user clicked instead of following the editor's jump.
+            _lastSyncedLine = Editor.FirstVisibleDocLine;
+        }
+
+        /// <summary>
+        /// Marks the source behind a preview selection and scrolls the editor to it, without moving
+        /// the caret or taking focus from the preview.
+        /// </summary>
+        private void ShowSource(int start, int end)
+        {
+            if (!CheckLinesCurrent(start, end))
+                return;
+            SourceHighlight.Mark(start, end);
+            _lastSyncedLine = Editor.FirstVisibleDocLine;
         }
 
         // ASCII-only prefix, so its character length equals its byte length in any encoding.

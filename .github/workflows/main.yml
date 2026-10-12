@@ -1,0 +1,20 @@
+name: Main branch build
+run-name: "Main: ${{ github.event.head_commit.message }}"
+
+# Builds and smoke-tests every commit that lands on main. Publishes nothing.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/package

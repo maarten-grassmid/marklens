@@ -56,8 +56,11 @@ namespace MarkLens.Npp
             Send(sci, SCI_INDICSETUNDER, ind, 1); // text stays drawn on top
         }
 
-        /// <summary>Moves the caret to the start of lines [startLine, endLine] and marks them.</summary>
-        public static void Show(long startLine, long endLine)
+        /// <summary>
+        /// Marks lines [startLine, endLine] and scrolls them into view when they are off screen.
+        /// The caret and keyboard focus stay where they are (Show in Source).
+        /// </summary>
+        public static void Mark(long startLine, long endLine)
         {
             Clear();
             IntPtr sci = Editor.CurrentScintilla;
@@ -78,13 +81,34 @@ namespace MarkLens.Npp
             try
             {
                 Send(sci, SciMsg.SCI_ENSUREVISIBLE, startLine);
-                Send(sci, SCI_GOTOPOS, start);
-                // Show the block with a little context above it.
-                long first = Math.Max(0, startLine - 3);
-                Send(sci, SCI_SETFIRSTVISIBLELINE, (long)Send(sci, SCI_VISIBLEFROMDOCLINE, first));
+                long top = Editor.FirstVisibleDocLine;
+                long onScreen = (long)Send(sci, SciMsg.SCI_LINESONSCREEN);
+                if (startLine < top || endLine > top + Math.Max(1, onScreen) - 1)
+                    ScrollToContext(sci, startLine);
+            }
+            finally { _placing = false; }
+        }
+
+        /// <summary>Moves the caret to the start of lines [startLine, endLine], marks them and focuses the editor.</summary>
+        public static void Show(long startLine, long endLine)
+        {
+            Mark(startLine, endLine);
+            IntPtr sci = _view;
+            _placing = true;
+            try
+            {
+                Send(sci, SCI_GOTOPOS, _start);
+                ScrollToContext(sci, startLine);
                 Send(sci, SciMsg.SCI_GRABFOCUS);
             }
             finally { _placing = false; }
+        }
+
+        /// <summary>Shows the block with a little context above it.</summary>
+        private static void ScrollToContext(IntPtr sci, long startLine)
+        {
+            long first = Math.Max(0, startLine - 3);
+            Send(sci, SCI_SETFIRSTVISIBLELINE, (long)Send(sci, SCI_VISIBLEFROMDOCLINE, first));
         }
 
         public static void Clear()

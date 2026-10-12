@@ -15,6 +15,7 @@ namespace MarkLens.UI
         private readonly TextBox _extensions = new TextBox { Width = 330 };
         private readonly NumericUpDown _delay = new NumericUpDown { Minimum = 0, Maximum = 5000, Increment = 50, Width = 80 };
         private readonly TextBox _css = new TextBox { Width = 260 };
+        private readonly CheckBox _contextMenu = Check("Add \"Show in Preview\" to the editor's right-click menu");
 
         private readonly CheckBox _highlight = Check("Syntax highlighting in code blocks (highlight.js)");
         private readonly CheckBox _mermaid = Check("Mermaid diagrams (```mermaid blocks)");
@@ -23,6 +24,12 @@ namespace MarkLens.UI
         private readonly CheckBox _html = Check("Render raw HTML in Markdown (can load remote images and frames)");
 
         public Settings Result => _result;
+
+        /// <summary>Whether the editor right-click entry was present when the dialog opened.</summary>
+        public bool ContextMenuItemInitially { get; private set; }
+
+        /// <summary>Whether the user wants the editor right-click entry (only meaningful when the box is enabled).</summary>
+        public bool ContextMenuItemWanted => _contextMenu.Enabled ? _contextMenu.Checked : ContextMenuItemInitially;
 
         public SettingsForm(Settings current)
         {
@@ -45,6 +52,14 @@ namespace MarkLens.UI
             general.Controls.Add(_toc);
             general.Controls.Add(_sync);
             general.Controls.Add(_nonMd);
+            general.Controls.Add(_contextMenu);
+            general.Controls.Add(new Label
+            {
+                Text = "Changes to the right-click menu take effect after Notepad++ is restarted.",
+                AutoSize = true,
+                ForeColor = SystemColors.GrayText,
+                Margin = new Padding(18, 0, 0, 3),
+            });
             general.Controls.Add(new Label { Text = "Markdown file extensions (separated by ;):", AutoSize = true, Margin = new Padding(0, 8, 0, 2) });
             general.Controls.Add(_extensions);
             general.Controls.Add(Row(new Label { Text = "Live update delay (ms):", AutoSize = true, Margin = new Padding(0, 6, 6, 0) }, _delay));
@@ -138,6 +153,20 @@ namespace MarkLens.UI
             _math.Checked = s.Math && Libraries.Math;
             _emoji.Checked = s.Emoji;
             _html.Checked = s.AllowHtml;
+
+            // Not an INI setting: Notepad++'s contextMenu.xml says whether the entry is there.
+            try
+            {
+                _contextMenu.Enabled = Npp.ContextMenuXml.Exists;
+                ContextMenuItemInitially = _contextMenu.Enabled && Npp.ContextMenuXml.Contains();
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is UnauthorizedAccessException)
+            {
+                _contextMenu.Enabled = false;
+            }
+            _contextMenu.Checked = ContextMenuItemInitially;
+            if (!_contextMenu.Enabled)
+                _contextMenu.Text += " (contextMenu.xml not found)";
         }
 
         private void Commit()

@@ -39,6 +39,7 @@ namespace MarkLens.Npp
         public static string CurrentFileName => NppString(NppMsg.NPPM_GETFILENAME);
         public static string CurrentExtension => NppString(NppMsg.NPPM_GETEXTPART);
         public static string PluginConfigDirectory => NppString(NppMsg.NPPM_GETPLUGINSCONFIGDIR);
+        public static string NppDirectory => NppString(NppMsg.NPPM_GETNPPDIRECTORY);
 
         public static IntPtr CurrentBufferId => Npp(NppMsg.NPPM_GETCURRENTBUFFERID);
 
@@ -160,6 +161,21 @@ namespace MarkLens.Npp
                 long visible = (long)Sci(SciMsg.SCI_GETFIRSTVISIBLELINE);
                 return (long)Sci(SciMsg.SCI_DOCLINEFROMVISIBLE, visible);
             }
+        }
+
+        /// <summary>
+        /// Document lines covered by the selection, or the caret line when nothing is selected.
+        /// A selection that ends at the very start of a line does not include that line.
+        /// </summary>
+        public static (long Start, long End) SelectionLines()
+        {
+            long selStart = (long)Sci(SciMsg.SCI_GETSELECTIONSTART);
+            long selEnd = (long)Sci(SciMsg.SCI_GETSELECTIONEND);
+            long start = (long)Sci(SciMsg.SCI_LINEFROMPOSITION, selStart);
+            long end = (long)Sci(SciMsg.SCI_LINEFROMPOSITION, selEnd);
+            if (end > start && PositionFromLine(end) == selEnd)
+                end--;
+            return (start, end);
         }
 
         public static void ScrollToDocLine(long line)

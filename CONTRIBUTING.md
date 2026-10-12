@@ -11,11 +11,13 @@ Thanks for helping out. This page covers what is specific to this repository; th
   merging. It has read-only access and no secrets. For pull requests from forks the maintainer approves
   each run first, so a check that stays at "waiting" for a while is expected.
 - Releases are separate from merging: the maintainer pushes a `vX.Y.Z` tag, the **Release** workflow
-  builds it, and publishing waits for the maintainer's approval.
+  checks the tag is exactly `vX.Y.Z`, builds and smoke tests that version, and publishing waits for the
+  maintainer's approval.
 
 ## What not to change
 
-- **The version** in `src/MarkLens/MarkLens.csproj`. The maintainer bumps it in the release pull request.
+- **The version** in `src/MarkLens/MarkLens.csproj` stays `0.0.0-dev`. A release takes its version from its
+  tag, so there is no version bump to merge.
 - **The workflows** in `.github/workflows` and the shared build steps in `.github/actions/package`.
   Actions are pinned to commit hashes and publishing is gated by an environment; changes there are the
   maintainer's (`.github/CODEOWNERS`).

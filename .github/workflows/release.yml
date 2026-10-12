@@ -15,6 +15,12 @@ jobs:
     name: Build and smoke test
     runs-on: windows-latest
     steps:
+      # The tag is the only source of the version, so refuse anything that is not exactly v1.2.3.
+      - name: Check the tag is vX.Y.Z
+        shell: pwsh
+        run: if ($env:TAG -notmatch '^v\d+\.\d+\.\d+$') { throw "Tag '$env:TAG' is not of the form vX.Y.Z." }
+        env:
+          TAG: ${{ github.ref_name }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false

@@ -161,7 +161,7 @@ verified against pinned checksums. After the build, `tools\DllExporter` adds the
 Notepad++ needs to load the plugin.
 
 **Releases:** every build runs the smoke test above against the packaged zip. Pushing a tag such as `v1.2.0`
-on `main` builds the zip with that version, tests it the same way and publishes it as a GitHub release.
+on `main` builds the zip with that version (local builds are `0.0.0-dev`), tests it the same way and publishes it as a GitHub release.
 
 ## License
 

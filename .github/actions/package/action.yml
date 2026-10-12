@@ -16,10 +16,11 @@ runs:
 
     - name: Build and package
       shell: pwsh
-      # A tag like v1.2.3 becomes version 1.2.3.
-      run: ./tools/package.ps1 -Version $env:VERSION.TrimStart('v')
+      # A tag like v1.2.3 becomes version 1.2.3. Not named VERSION: MSBuild reads environment
+      # variables as properties, and Version=v1.2.3 would break the DllExporter restore.
+      run: ./tools/package.ps1 -Version $env:RELEASE_TAG.TrimStart('v')
       env:
-        VERSION: ${{ inputs.version }}
+        RELEASE_TAG: ${{ inputs.version }}
 
     # Install the package into portable Notepad++ 8.3.1 (the oldest supported version),
     # open the sample and make sure the viewer comes up without logging an error.

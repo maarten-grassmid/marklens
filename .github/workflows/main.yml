@@ -1,7 +1,7 @@
 name: Main branch build
-run-name: "Main: ${{ github.event.head_commit.message }}"
 
 # Builds and smoke-tests every commit that lands on main. Publishes nothing.
+# No run-name: the default title is the first line of the commit message, which stays short.
 on:
   push:
     branches: [main]

@@ -6,7 +6,8 @@ tags: [demo, test]
 # MarkLens
 
 A showcase of everything the viewer renders. Select any part of the preview,
-right-click and choose **Edit Selection** to jump to the Markdown behind it.
+right-click and choose **Edit Selection in Source** to jump to the Markdown behind it,
+or **Show in Source** to highlight it without leaving the preview.
 
 ## Text formatting
 
@@ -59,7 +60,8 @@ Term
 | Feature            | Shortcut        | Default |
 |:-------------------|:---------------:|:-------:|
 | Copy text          | Ctrl+C          | ✓       |
-| Edit selection     | Ctrl+E          | ✓       |
+| Edit in source     | Ctrl+E          | ✓       |
+| Show in preview    | Ctrl+Alt+Shift+M | ✓      |
 | Find in preview    | Ctrl+F          | ✓       |
 | Table of contents  | Plugins menu    | ✓       |
 

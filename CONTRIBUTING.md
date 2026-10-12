@@ -5,18 +5,20 @@ Thanks for helping out. This page covers what is specific to this repository; th
 
 ## Branches and pull requests
 
-- Branch from `develop` and open your pull request against `develop`.
-- `main` only receives releases, merged from `develop` by the maintainer. A pull request against `main`
-  fails its `check` and cannot be merged.
+- Branch from `main` and open your pull request against `main`. Pull requests are squash-merged.
 - Keep a pull request to one topic. Describe what changed and why; the template asks a few questions.
-- CI builds every pull request after the maintainer approves the run, so a check that stays at
-  "waiting" for a while is expected. For pull requests from forks the maintainer builds and tests locally.
+- Every pull request runs **Pull request checks**, whose job **Build and smoke test** must pass before
+  merging. It has read-only access and no secrets. For pull requests from forks the maintainer approves
+  each run first, so a check that stays at "waiting" for a while is expected.
+- Releases are separate from merging: the maintainer pushes a `vX.Y.Z` tag, the **Release** workflow
+  builds it, and publishing waits for the maintainer's approval.
 
 ## What not to change
 
 - **The version** in `src/MarkLens/MarkLens.csproj`. The maintainer bumps it in the release pull request.
-- **The workflows** in `.github/workflows`. Actions are pinned to commit hashes and runs are gated by
-  environments; changes there are the maintainer's.
+- **The workflows** in `.github/workflows` and the shared build steps in `.github/actions/package`.
+  Actions are pinned to commit hashes and publishing is gated by an environment; changes there are the
+  maintainer's (`.github/CODEOWNERS`).
 - **Pinned checksums** in `tools/fetch-vendor.ps1` and `tools/smoke-test.ps1`, except as part of an upgrade
   described below.
 
@@ -45,9 +47,11 @@ Thanks for helping out. This page covers what is specific to this repository; th
 | A bundled library file name | `tools/fetch-vendor.ps1`, `Libraries.cs`, `tools/package.ps1`, `assets/viewer.js` and the export code in `ViewerPanel.cs` |
 | A NuGet package | the DLL list in `tools/package.ps1` (the package step fails with "missing build output" otherwise) and `THIRD-PARTY-NOTICES.txt` |
 | The menu text "Markdown Viewer", the plugin name or the panel title | `tools/smoke-test.ps1`, which finds the viewer by those names |
+| The menu text "Show in Preview" | nothing in code (`Main.ShowInPreviewCommand` feeds both the menu and `Npp/ContextMenuXml.cs`), but users who added it to the right-click menu must tick the Settings box again |
+| A message between the page and the plugin | both ends: the `switch` in `assets/viewer.js` and `HandleWebMessage` in `ViewerPanel.cs` |
 | `docs/sample.md` | nothing. The smoke test only opens it; its content is free to improve |
 | A field in `Settings.cs` | nothing, but the INI key is the field name, so renaming a field resets that setting for every user |
-| The minimum Notepad++ version | the badge and requirements in `README.md`, `npp-compatible-versions` in `.github/workflows/build.yml`, and the version and SHA-256 in `tools/smoke-test.ps1` |
+| The minimum Notepad++ version | the badge and requirements in `README.md`, `npp-compatible-versions` in `.github/workflows/release.yml`, and the version and SHA-256 in `tools/smoke-test.ps1` |
 
 ## How the plugin is put together
 

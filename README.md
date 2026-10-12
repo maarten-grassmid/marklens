@@ -19,8 +19,11 @@ Live preview · Table of contents · Jump from preview to source · Works with h
 ## Features
 
 - **Select and copy anything** in the preview, with a right-click menu for Copy and Copy as Markdown.
-- **Jump to the source.** Select text in the preview and choose *Edit Selection*. The cursor moves to the
-  Markdown that produced it, and those lines are highlighted in the editor.
+- **Jump between source and preview.** Select text in the preview and choose *Edit Selection in Source*:
+  the cursor moves to the Markdown that produced it, and those lines are highlighted in the editor.
+  *Show in Source* highlights them without leaving the preview. From the editor, *Show in Preview*
+  scrolls the preview to the block you are in.
+- **Find in the preview** with every match highlighted and a match counter.
 - **Table of contents** sidebar with a filter box. It highlights the section you are reading.
 - **Two-way scroll sync** between the editor and the preview.
 - **Clickable task lists**: ticking a box updates `[ ]` / `[x]` in your file.
@@ -59,7 +62,8 @@ gh attestation verify MarkLens-<version>-x64.zip --repo maarten-grassmid/marklen
 SHA-256 of its zip.
 
 **Uninstall:** close Notepad++ and delete `C:\Program Files\Notepad++\plugins\MarkLens\`. To also remove your
-settings, delete `%AppData%\Notepad++\plugins\config\MarkLens\`.
+settings, delete `%AppData%\Notepad++\plugins\config\MarkLens\`. If you added "Show in Preview" to the right-click
+menu, untick it in Settings first; otherwise Notepad++ simply leaves the entry out once the plugin is gone.
 
 **Try it:** open [`docs/sample.md`](docs/sample.md), which shows everything MarkLens can render.
 
@@ -71,10 +75,12 @@ You can dock the panel on any side or drag it out to float, and Notepad++ rememb
 | Action | How |
 |---|---|
 | Show / hide the preview | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> or **Plugins › MarkLens › Markdown Viewer** |
-| Jump to the Markdown behind a selection | Select, then right-click › **Edit Selection** or <kbd>Ctrl</kbd>+<kbd>E</kbd> |
+| Edit the Markdown behind a selection | Select, then right-click › **Edit Selection in Source** or <kbd>Ctrl</kbd>+<kbd>E</kbd> |
+| Highlight the Markdown behind a selection, staying in the preview | Right-click › **Show in Source** |
 | Jump to the Markdown behind a block | <kbd>Ctrl</kbd>+double-click it |
+| Show the block at the editor's cursor in the preview | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> or **Plugins › MarkLens › Show in Preview** (optionally also on the editor's right-click menu, see Settings) |
 | Copy text / copy as Markdown | <kbd>Ctrl</kbd>+<kbd>C</kbd> / right-click › **Copy as Markdown** |
-| Find in the preview | <kbd>Ctrl</kbd>+<kbd>F</kbd>, then <kbd>Enter</kbd> or <kbd>F3</kbd> |
+| Find in the preview | <kbd>Ctrl</kbd>+<kbd>F</kbd>, then <kbd>Enter</kbd> / <kbd>F3</kbd> for the next match and <kbd>Shift</kbd>+<kbd>Enter</kbd> / <kbd>Shift</kbd>+<kbd>F3</kbd> for the previous one |
 | Go to a heading | Click it in the table of contents |
 | Tick a task | Click its checkbox |
 | Zoom | <kbd>Ctrl</kbd>+mouse wheel |
@@ -82,7 +88,8 @@ You can dock the panel on any side or drag it out to float, and Notepad++ rememb
 
 > [!TIP]
 > The yellow source highlight stays while you move around inside it. It disappears when you click
-> elsewhere, edit the text or switch documents.
+> elsewhere, edit the text or switch documents. **Show in Source** leaves the cursor where it was, so
+> click inside the highlight to start editing there.
 
 ## Settings
 
@@ -93,6 +100,7 @@ Open **Plugins › MarkLens › Settings…**
 | Theme (follow Notepad++, light, dark) | Follow Notepad++ |
 | Table of contents | On |
 | Synchronize scrolling | On |
+| "Show in Preview" on the editor's right-click menu | Off. Adds or removes the entry in Notepad++'s `contextMenu.xml`; restart Notepad++ afterwards. |
 | Markdown file extensions | `.md` `.markdown` `.mdown` `.mkd` and more |
 | Live update delay | 250 ms |
 | Custom stylesheet | None |
@@ -123,10 +131,10 @@ kept as rendered. With Math on, the file loads the KaTeX fonts from a CDN so it 
 
 Found a bug or have an idea? [Open an issue](https://github.com/maarten-grassmid/marklens/issues).
 
-Pull requests are welcome. Branch from `develop` and target `develop`; `main` only receives releases, and
-pull requests against it are rejected automatically. CI runs after the maintainer approves it, so a check
-that says "waiting" on your pull request is normal. See [CONTRIBUTING.md](CONTRIBUTING.md) for the build
-and test loop and for the few files that must change together.
+Pull requests are welcome. Branch from `main` and target `main`. Every pull request is built and
+smoke-tested automatically; for pull requests from forks the maintainer approves the run first, so a
+check that says "waiting" is normal. See [CONTRIBUTING.md](CONTRIBUTING.md) for the build and test loop
+and for the few files that must change together.
 
 ## Building
 

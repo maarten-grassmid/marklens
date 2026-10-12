@@ -1,8 +1,9 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directory: /
-    target-branch: develop
+    directories:
+      - /
+      - /.github/actions/package
     schedule:
       interval: weekly
 
@@ -10,6 +11,5 @@ updates:
     directories:
       - /src/MarkLens
       - /tools/DllExporter
-    target-branch: develop
     schedule:
       interval: weekly

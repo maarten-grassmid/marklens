@@ -11,6 +11,8 @@ namespace MarkLens
     {
         public const string PluginName = "MarkLens";
         public const string PluginFolderName = "MarkLens";
+        // Also the item name Notepad++ matches in contextMenu.xml (Npp\ContextMenuXml.cs).
+        public const string ShowInPreviewCommand = "Show in Preview";
 
         public static readonly PluginMenu Menu = new PluginMenu();
         // Loaded lazily: Notepad++ re-opens a panel that was visible at last exit by
@@ -34,6 +36,8 @@ namespace MarkLens
                 new ShortcutKey(true, false, true, Keys.M));
             _idxToc = Menu.Add("Table of Contents", ToggleToc);
             _idxSync = Menu.Add("Synchronize Scrolling", ToggleSync);
+            Menu.Add(ShowInPreviewCommand, ShowInPreview, false,
+                new ShortcutKey(true, true, true, Keys.M));
             Menu.AddSeparator();
             Menu.Add("Export as HTML...", () => WithPanel(p => p.ExportHtml()));
             Menu.Add("Export as PDF...", () => WithPanel(p => p.ExportPdf()));
@@ -94,8 +98,9 @@ namespace MarkLens
                     int updated = Marshal.ReadInt32(notification, 144);
                     if ((updated & SciMsg.SC_UPDATE_SELECTION) != 0)
                         SourceHighlight.OnSelectionChanged(header.hwndFrom);
-                    if ((updated & SciMsg.SC_UPDATE_V_SCROLL) != 0 &&
-                        _panel != null && _panel.IsActive && header.hwndFrom == Editor.CurrentScintilla)
+                    // Not only on SC_UPDATE_V_SCROLL: the panel compares the top line itself, which
+                    // also catches jumps (Find, Go To) whose scroll arrives in another update.
+                    if (_panel != null && _panel.IsActive && header.hwndFrom == Editor.CurrentScintilla)
                         _panel.OnEditorScrolled();
                     break;
                 }
@@ -142,6 +147,18 @@ namespace MarkLens
             Editor.SetMenuChecked(Menu.CommandId(_idxSync), Settings.SyncScroll);
             Settings.Save();
             _panel?.ApplySettings();
+            if (Settings.SyncScroll)
+                _panel?.Resync();
+        }
+
+        /// <summary>Editor to preview: scrolls the preview to the block at the caret or selection.</summary>
+        private static void ShowInPreview()
+        {
+            WithPanel(p =>
+            {
+                var (start, end) = Editor.SelectionLines();
+                p.RevealLines((int)start, (int)end);
+            });
         }
 
         public static void ShowSettings()
@@ -157,6 +174,14 @@ namespace MarkLens
                     Editor.SetMenuChecked(Menu.CommandId(_idxToc), Settings.ShowToc);
                     Editor.SetMenuChecked(Menu.CommandId(_idxSync), Settings.SyncScroll);
                     _panel?.UpdateSettings(Settings);
+
+                    if (dlg.ContextMenuItemWanted != dlg.ContextMenuItemInitially)
+                    {
+                        ContextMenuXml.Set(dlg.ContextMenuItemWanted);
+                        MessageBox.Show(new Win32Window(Editor.NppHandle),
+                            "Restart Notepad++ to update its right-click menu.",
+                            PluginName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                 }
             });
         }
@@ -167,7 +192,8 @@ namespace MarkLens
             MessageBox.Show(new Win32Window(Editor.NppHandle),
                 $"{PluginName} {version.Major}.{version.Minor}.{version.Build}\n\n" +
                 "A fast Markdown viewer for Notepad++ with selectable text, table of contents,\n" +
-                "edit-selection, scroll sync and optional code highlighting, Mermaid and math.\n\n" +
+                "edit and show in source, show in preview, scroll sync and optional code highlighting,\n" +
+                "Mermaid and math.\n\n" +
                 "https://github.com/maarten-grassmid/marklens",
                 PluginName, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }

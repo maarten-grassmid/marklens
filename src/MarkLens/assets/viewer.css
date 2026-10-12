@@ -9,6 +9,9 @@
   --menu-bg: #ffffff;
   --menu-shadow: 0 8px 24px rgba(140, 149, 159, 0.3);
   --input-bg: #ffffff;
+  --find-bg: #fff3a3;
+  --find-current-bg: #ff9632;
+  --find-current-fg: #000000;
 }
 
 .theme-dark {
@@ -20,6 +23,9 @@
   --menu-bg: #2b2d30;
   --menu-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   --input-bg: #1e1f22;
+  --find-bg: #5c4d12;
+  --find-current-bg: #f2a33a;
+  --find-current-fg: #000000;
 }
 
 html, body { height: 100%; overflow: hidden; }
@@ -220,7 +226,11 @@ body.no-toc #toc, body.no-toc #toc-resizer { display: none; }
   box-shadow: var(--menu-shadow);
 }
 #findbar[hidden] { display: none; }
-#find-count { color: var(--fg-muted); min-width: 52px; text-align: right; font-size: 12px; }
+#find-count { color: var(--fg-muted); min-width: 72px; text-align: right; font-size: 12px; white-space: nowrap; }
+
+/* Find matches (CSS Custom Highlight API): every match, and the one Enter/F3 moved to. */
+::highlight(marklens-find) { background-color: var(--find-bg); }
+::highlight(marklens-find-current) { background-color: var(--find-current-bg); color: var(--find-current-fg); }
 
 /* ---------- toast ---------- */
 

@@ -14,7 +14,7 @@
     docKey: null,
     lastHtml: '',
     scrollMemory: new Map(),
-    ignoreScrollUntil: 0,
+    expectedScrollTop: null, // scrollTop we set ourselves; its scroll event is not echoed
     anchors: null,          // cached [{el, line, top}] for scroll mapping
     headings: [],
     activeHeading: null,
@@ -63,6 +63,8 @@
           case 'placeholder': placeholder(msg); break;
           case 'scrollTo': scrollToLine(msg.line, false); break;
           case 'settings': applySettings(msg); break;
+          case 'find': onFindMessage(msg.action); break;
+          case 'reveal': reveal(msg.start); break;
         }
       } catch (err) {
         console.error(err);
@@ -91,7 +93,8 @@
       const top = scroller.scrollTop;
       content.textContent = '';
       patch(state.lastHtml);
-      scroller.scrollTop = top;
+      setScrollTop(top);
+      refindSoon();
     }
     invalidateAnchors();
   }
@@ -114,6 +117,7 @@
     div.append(t, h);
     content.appendChild(div);
     buildToc();
+    clearFindResults();
   }
 
   function saveScroll() {
@@ -134,6 +138,7 @@
     patch(msg.html);
     buildToc();
     invalidateAnchors();
+    refindSoon();
 
     if (switching) {
       const remembered = state.scrollMemory.get(msg.docKey);
@@ -241,7 +246,7 @@
           const lang = (code.className.match(/language-([\w+#-]+)/) || [])[1];
           if (lang && hljs.getLanguage(lang) && code.isConnected) hljs.highlightElement(code);
         }
-        if (i < blocks.length) requestAnimationFrame(step); else invalidateAnchors();
+        if (i < blocks.length) requestAnimationFrame(step); else { invalidateAnchors(); refindSoon(); }
       };
       step();
     }).catch(console.error);
@@ -265,6 +270,7 @@
         }
       });
       invalidateAnchors();
+      refindSoon();
     }).catch(console.error);
   }
 
@@ -297,6 +303,7 @@
         }
       }
       invalidateAnchors();
+      refindSoon();
     }).catch(console.error);
   }
 
@@ -326,9 +333,12 @@
     return list;
   }
 
+  /** Scrolls without telling the host (the host asked for it, or the editor must stay put). */
   function setScrollTop(y) {
-    state.ignoreScrollUntil = performance.now() + 120;
+    const before = scroller.scrollTop;
     scroller.scrollTop = y;
+    // The browser clamps synchronously; only expect a scroll event when the position changed.
+    state.expectedScrollTop = scroller.scrollTop !== before ? scroller.scrollTop : null;
   }
 
   function scrollToLine(line, notify) {
@@ -380,7 +390,10 @@
     scrollFrame = requestAnimationFrame(() => {
       scrollFrame = 0;
       updateActiveHeading();
-      if (performance.now() < state.ignoreScrollUntil) return;
+      // Skip exactly the scroll we caused ourselves; anything else is the user's and is synced.
+      const expected = state.expectedScrollTop;
+      state.expectedScrollTop = null;
+      if (expected !== null && Math.abs(scroller.scrollTop - expected) < 1) return;
       if (state.settings.sync && state.docKey) host.post({ type: 'scroll', line: Math.floor(lineAtScroll()) });
     });
   }, { passive: true });
@@ -422,9 +435,28 @@
 
   function revealElement(el) {
     el.scrollIntoView({ block: 'start' });
+    flash(el);
+  }
+
+  function flash(el) {
     el.classList.remove('flash');
     void el.offsetWidth;
     el.classList.add('flash');
+  }
+
+  /** Show in Preview: brings the deepest block that contains source line `start` to the top and flashes it. */
+  function reveal(start) {
+    let best = null, bestLine = -1;
+    for (const el of content.querySelectorAll('[data-line]')) {
+      const line = +el.getAttribute('data-line');
+      const end = +el.getAttribute('data-line-end');
+      if (line <= start && start <= end && line >= bestLine) { best = el; bestLine = line; }
+    }
+    if (!best) { scrollToLine(start, false); return; }
+    const base = scroller.getBoundingClientRect().top - scroller.scrollTop;
+    // Silent: the editor already shows these lines and must not be moved.
+    setScrollTop(Math.max(0, best.getBoundingClientRect().top - base - 8));
+    flash(best);
   }
 
   function updateActiveHeading() {
@@ -636,12 +668,18 @@
     }
     items.push('-');
     items.push({
-      // Jumps to the source in the editor and highlights the lines behind it.
-      label: hasSelection ? 'Edit Selection' : 'Edit This Block',
+      // Moves the caret to the source in the editor and highlights the lines behind it.
+      label: hasSelection ? 'Edit Selection in Source' : 'Edit Block in Source',
       key: 'Ctrl+E',
       disabled: !lines,
       bold: true,
       run: () => host.post({ type: 'editSource', start: lines.start, end: lines.end }),
+    });
+    items.push({
+      // Highlights and scrolls to the source, but leaves the caret and focus where they are.
+      label: 'Show in Source',
+      disabled: !lines,
+      run: () => host.post({ type: 'showSource', start: lines.start, end: lines.end }),
     });
     items.push('-');
     items.push({ label: 'Find…', key: 'Ctrl+F', run: openFind });
@@ -712,46 +750,179 @@
   const findbar = $('findbar');
   const findInput = $('find-input');
 
+  const findCount = $('find-count');
+  const MAX_MATCHES = 5000;
+  const hasHighlights = typeof CSS !== 'undefined' && CSS.highlights && typeof Highlight === 'function';
+  const found = { ranges: [], current: -1 };
+
   function openFind() {
     findbar.hidden = false;
     const sel = window.getSelection().toString();
     if (sel && sel.length < 200 && !sel.includes('\n')) findInput.value = sel;
     findInput.focus();
     findInput.select();
-    updateFindCount();
+    runFind(true);
   }
 
   function closeFind() {
     findbar.hidden = true;
+    clearFindResults();
     scroller.focus();
   }
 
-  function find(backwards) {
-    const q = findInput.value;
-    if (!q) return;
-    // window.find searches the whole document; keep the query input from matching itself.
-    findInput.blur();
-    const found = window.find(q, false, backwards, true, false, false, false);
-    if (!found) toast('No matches');
-    findInput.focus({ preventScroll: true });
+  function onFindMessage(action) {
+    if (action === 'open' || findbar.hidden) openFind();
+    else findStep(action === 'prev' ? -1 : 1);
   }
 
-  function updateFindCount() {
-    const q = findInput.value.toLowerCase();
-    if (!q) { $('find-count').textContent = ''; return; }
-    const text = content.textContent.toLowerCase();
-    let count = 0, i = 0;
-    while ((i = text.indexOf(q, i)) !== -1 && count < 9999) { count++; i += q.length; }
-    $('find-count').textContent = count === 1 ? '1 match' : count + ' matches';
+  /** Text nodes of the document content (not the TOC or chrome), with their offsets in the joined text. */
+  function collectText() {
+    const segments = [];
+    let text = '';
+    const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.parentElement && n.parentElement.closest('.code-copy, script, style, .katex-mathml'))
+        ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+    });
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const value = n.nodeValue;
+      const lower = value.toLowerCase();
+      segments.push({ node: n, start: text.length });
+      // A few characters change length when lower-cased; keep offsets aligned for those nodes.
+      text += lower.length === value.length ? lower : value;
+    }
+    return { segments, text };
   }
 
-  findInput.addEventListener('input', updateFindCount);
+  function locate(segments, offset) {
+    let lo = 0, hi = segments.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (segments[mid].start <= offset) lo = mid; else hi = mid - 1;
+    }
+    return { node: segments[lo].node, offset: offset - segments[lo].start };
+  }
+
+  function buildRanges(query) {
+    const q = query.toLowerCase();
+    const { segments, text } = collectText();
+    const ranges = [];
+    if (!q || !segments.length) return ranges;
+    for (let i = text.indexOf(q); i !== -1 && ranges.length < MAX_MATCHES; i = text.indexOf(q, i + q.length)) {
+      const a = locate(segments, i);
+      const b = locate(segments, i + q.length - 1);
+      const r = document.createRange();
+      r.setStart(a.node, a.offset);
+      r.setEnd(b.node, b.offset + 1);
+      ranges.push(r);
+    }
+    return ranges;
+  }
+
+  function applyHighlights() {
+    if (!hasHighlights) return;
+    if (!found.ranges.length) {
+      CSS.highlights.delete('marklens-find');
+      CSS.highlights.delete('marklens-find-current');
+      return;
+    }
+    CSS.highlights.set('marklens-find', new Highlight(...found.ranges));
+    const cur = found.ranges[found.current];
+    if (cur) CSS.highlights.set('marklens-find-current', new Highlight(cur));
+    else CSS.highlights.delete('marklens-find-current');
+  }
+
+  function updateCounter() {
+    if (!findInput.value) findCount.textContent = '';
+    else if (!found.ranges.length) findCount.textContent = 'No matches';
+    else findCount.textContent = (found.current + 1) + ' of ' + found.ranges.length +
+      (found.ranges.length >= MAX_MATCHES ? '+' : '');
+  }
+
+  /** Scrolls the content (not the page) so the match sits in the upper third, clear of the find bar. */
+  function scrollToRange(range) {
+    let rect = range.getBoundingClientRect();
+    if (!rect.width && !rect.height) {
+      const el = range.startContainer.parentElement;
+      const details = el && el.closest('details:not([open])');
+      if (details) details.open = true;
+      rect = range.getBoundingClientRect();
+      if (!rect.width && !rect.height && el) rect = el.getBoundingClientRect();
+    }
+    const view = scroller.getBoundingClientRect();
+    const barBottom = findbar.getBoundingClientRect().bottom;
+    if (rect.top < Math.max(view.top, barBottom) + 8 || rect.bottom > view.bottom - 8) {
+      // A plain assignment: the editor follows through the normal scroll sync.
+      scroller.scrollTop += rect.top - view.top - view.height / 3;
+    }
+  }
+
+  /** Rebuilds the matches. `jump` moves to the first match at or below the top of the view. */
+  function runFind(jump) {
+    const previous = found.current;
+    found.ranges = buildRanges(findInput.value);
+    if (!found.ranges.length) {
+      found.current = -1;
+    } else if (jump) {
+      const top = scroller.getBoundingClientRect().top;
+      const idx = found.ranges.findIndex((r) => r.getBoundingClientRect().bottom >= top);
+      found.current = idx === -1 ? 0 : idx;
+    } else {
+      found.current = Math.min(Math.max(previous, 0), found.ranges.length - 1);
+    }
+    applyHighlights();
+    updateCounter();
+    if (jump && found.current >= 0) scrollToRange(found.ranges[found.current]);
+  }
+
+  function findStep(dir) {
+    if (!findInput.value) { findInput.focus(); return; }
+    // Matches go stale when the document re-renders; rebuild if any range lost its text.
+    if (!found.ranges.length || found.ranges.some((r) => !r.startContainer.isConnected)) runFind(false);
+    const n = found.ranges.length;
+    if (!n) { updateCounter(); toast('No matches'); return; }
+    found.current = (found.current + dir + n) % n;
+    applyHighlights();
+    updateCounter();
+    scrollToRange(found.ranges[found.current]);
+  }
+
+  function clearFindResults() {
+    found.ranges = [];
+    found.current = -1;
+    applyHighlights();
+    updateCounter();
+  }
+
+  // After a re-render the old ranges point at removed nodes; refresh without scrolling.
+  let refindFrame = 0;
+  function refindSoon() {
+    if (findbar.hidden || !findInput.value || refindFrame) return;
+    refindFrame = requestAnimationFrame(() => { refindFrame = 0; runFind(false); });
+  }
+
+  let findInputTimer = 0;
+  findInput.addEventListener('input', () => {
+    clearTimeout(findInputTimer);
+    findInputTimer = setTimeout(() => { findInputTimer = 0; runFind(true); }, 120);
+  });
   findInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); find(e.shiftKey); }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (findInputTimer) {
+        // Typed and pressed Enter before the search ran: search now and show the first match.
+        clearTimeout(findInputTimer);
+        findInputTimer = 0;
+        runFind(true);
+      } else {
+        findStep(e.shiftKey ? -1 : 1);
+      }
+    }
     else if (e.key === 'Escape') { e.preventDefault(); closeFind(); }
   });
-  $('find-next').addEventListener('click', () => find(false));
-  $('find-prev').addEventListener('click', () => find(true));
+  // Keep focus in the input while clicking the arrows, so Enter keeps working.
+  ['find-next', 'find-prev', 'find-close'].forEach((id) => $(id).addEventListener('mousedown', (e) => e.preventDefault()));
+  $('find-next').addEventListener('click', () => findStep(1));
+  $('find-prev').addEventListener('click', () => findStep(-1));
   $('find-close').addEventListener('click', closeFind);
 
   // ------------------------------------------------------------------ keyboard
@@ -771,7 +942,7 @@
       else host.post({ type: 'editSource', start: lines.start, end: lines.end });
     } else if (e.key === 'F3') {
       e.preventDefault();
-      if (findbar.hidden) openFind(); else find(e.shiftKey);
+      if (findbar.hidden) openFind(); else findStep(e.shiftKey ? -1 : 1);
     } else if (e.key === 'Escape') {
       if (!menu.hidden) closeMenu();
       else if (!findbar.hidden) closeFind();

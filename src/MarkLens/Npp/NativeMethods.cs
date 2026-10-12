@@ -69,6 +69,7 @@ namespace MarkLens.Npp
         public const int NPPM_GETCURRENTDIRECTORY = RUNCOMMAND_USER + 2;
         public const int NPPM_GETFILENAME = RUNCOMMAND_USER + 3;
         public const int NPPM_GETEXTPART = RUNCOMMAND_USER + 5;
+        public const int NPPM_GETNPPDIRECTORY = RUNCOMMAND_USER + 7;
 
         // Notifications
         private const uint NPPN_FIRST = 1000;
@@ -95,14 +96,18 @@ namespace MarkLens.Npp
         public const int SCI_GETLINEENDPOSITION = 2136;
         public const int SCI_GETCODEPAGE = 2137;
         public const int SCI_GETREADONLY = 2140;
+        public const int SCI_GETSELECTIONSTART = 2143;
+        public const int SCI_GETSELECTIONEND = 2145;
         public const int SCI_GETFIRSTVISIBLELINE = 2152;
         public const int SCI_GETLINECOUNT = 2154;
         public const int SCI_SETSEL = 2160;
+        public const int SCI_LINEFROMPOSITION = 2166;
         public const int SCI_POSITIONFROMLINE = 2167;
         public const int SCI_REPLACETARGET = 2194;
         public const int SCI_VISIBLEFROMDOCLINE = 2220;
         public const int SCI_DOCLINEFROMVISIBLE = 2221;
         public const int SCI_ENSUREVISIBLE = 2232;
+        public const int SCI_LINESONSCREEN = 2370;
         public const int SCI_GRABFOCUS = 2400;
         public const int SCI_GETCHARACTERPOINTER = 2520;
         public const int SCI_SETFIRSTVISIBLELINE = 2613;

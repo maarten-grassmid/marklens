@@ -100,7 +100,7 @@ Open **Plugins › MarkLens › Settings…**
 | Theme (follow Notepad++, light, dark) | Follow Notepad++ |
 | Table of contents | On |
 | Synchronize scrolling | On |
-| "Show in Preview" on the editor's right-click menu | Off. Adds or removes the entry in Notepad++'s `contextMenu.xml`; restart Notepad++ afterwards. |
+| "Show in Preview" on the editor's right-click menu | Off. Adds or removes the entry in Notepad++'s `contextMenu.xml`. Notepad++ shows the change after a restart, which MarkLens offers to do for you. |
 | Markdown file extensions | `.md` `.markdown` `.mdown` `.mkd` and more |
 | Live update delay | 250 ms |
 | Custom stylesheet | None |

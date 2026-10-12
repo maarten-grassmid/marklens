@@ -78,6 +78,7 @@ namespace MarkLens.Npp
         public const uint NPPN_SHUTDOWN = NPPN_FIRST + 9;
         public const uint NPPN_BUFFERACTIVATED = NPPN_FIRST + 10;
         public const uint NPPN_LANGCHANGED = NPPN_FIRST + 11;
+        public const uint NPPN_CANCELSHUTDOWN = NPPN_FIRST + 20;
         public const uint NPPN_FILERENAMED = NPPN_FIRST + 23;
         public const uint NPPN_DARKMODECHANGED = NPPN_FIRST + 27;
 
@@ -141,6 +142,9 @@ namespace MarkLens.Npp
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, out int lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);

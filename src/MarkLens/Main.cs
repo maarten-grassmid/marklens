@@ -67,6 +67,13 @@ namespace MarkLens
                 case NppMsg.NPPN_SHUTDOWN:
                     Settings.Save();
                     _panel?.Shutdown();
+                    // Only sent once Notepad++ really closes, so a cancelled exit never restarts.
+                    if (_restartOnShutdown)
+                        Restarter.StartAfterExit();
+                    break;
+                case NppMsg.NPPN_CANCELSHUTDOWN:
+                    // The user cancelled a save prompt: no restart, now or at a later exit.
+                    _restartOnShutdown = false;
                     break;
                 case NppMsg.NPPN_BUFFERACTIVATED:
                     SourceHighlight.OnBufferActivated();
@@ -178,12 +185,32 @@ namespace MarkLens
                     if (dlg.ContextMenuItemWanted != dlg.ContextMenuItemInitially)
                     {
                         ContextMenuXml.Set(dlg.ContextMenuItemWanted);
-                        MessageBox.Show(new Win32Window(Editor.NppHandle),
-                            "Restart Notepad++ to update its right-click menu.",
-                            PluginName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        string what = dlg.ContextMenuItemWanted
+                            ? $"\"{ShowInPreviewCommand}\" was added to the editor's right-click menu."
+                            : $"\"{ShowInPreviewCommand}\" was removed from the editor's right-click menu.";
+                        const string why = "Notepad++ reads its right-click menu only when it starts, so the change " +
+                                           "shows after a restart.";
+                        using (var restart = new RestartDialog(what, why))
+                        {
+                            if (restart.ShowDialog(new Win32Window(Editor.NppHandle)) == DialogResult.Yes)
+                                RestartNotepadPlusPlus();
+                        }
                     }
                 }
             });
+        }
+
+        private static bool _restartOnShutdown;
+
+        /// <summary>
+        /// Asks Notepad++ to exit as if the user chose File > Exit (save prompts included). The
+        /// relaunch is started from NPPN_SHUTDOWN, so cancelling a save prompt cancels the restart.
+        /// </summary>
+        private static void RestartNotepadPlusPlus()
+        {
+            const int WM_COMMAND = 0x0111, IDM_FILE_EXIT = 41011;
+            _restartOnShutdown = true;
+            Win32.PostMessage(Editor.NppHandle, WM_COMMAND, new IntPtr(IDM_FILE_EXIT), IntPtr.Zero);
         }
 
         private static void ShowAbout()

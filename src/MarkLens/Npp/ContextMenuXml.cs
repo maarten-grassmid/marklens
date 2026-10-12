@@ -16,6 +16,10 @@ namespace MarkLens.Npp
         private const string FileName = "contextMenu.xml";
         private const string ClosingTag = "</ScintillaContextMenu>";
 
+        // Notepad++'s menu separator; ours sits directly above the entry and goes with it.
+        private const string SeparatorXml = "<Item id=\"0\" />";
+        private const string SeparatorPattern = "<Item\\s+id=\"0\"\\s*/>";
+
         private static string ItemXml =>
             $"<Item PluginEntryName=\"{Main.PluginName}\" PluginCommandItemName=\"{Main.ShowInPreviewCommand}\" />";
 
@@ -82,14 +86,17 @@ namespace MarkLens.Npp
                 bool onOwnLine = closingIndent.Trim().Length == 0;
                 // Match the indentation of the items above the closing tag.
                 string indent = onOwnLine ? closingIndent + "\t" : "\t\t";
+                string lines = indent + SeparatorXml + eol + indent + ItemXml + eol;
                 updated = onOwnLine
-                    ? text.Insert(lineStart, indent + ItemXml + eol)
-                    : text.Insert(close, eol + indent + ItemXml + eol);
+                    ? text.Insert(lineStart, lines)
+                    : text.Insert(close, eol + lines);
             }
             else
             {
                 // An entry on a line of its own goes with its line; one sharing a line goes alone.
-                var wholeLine = new Regex("(?m)^[ \\t]*" + pattern + "[ \\t]*\\r?\\n");
+                // Our separator line directly above the entry is removed with it.
+                var wholeLine = new Regex("(?m)(^[ \\t]*" + SeparatorPattern + "[ \\t]*\\r?\\n)?" +
+                                          "^[ \\t]*" + pattern + "[ \\t]*\\r?\\n");
                 updated = pattern.Replace(wholeLine.Replace(text, string.Empty), string.Empty);
                 if (updated == text)
                     return;
